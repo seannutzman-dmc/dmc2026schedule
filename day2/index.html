@@ -465,11 +465,11 @@
 
     // Column width control
     const colgroup = document.createElement("colgroup");
-    const colWidths = ["10%", "18%", "24%", "22%", "8%", "18%"];
+    const colWidths = ["15%", "15%", "25%", "20%", "15%", "10%"];
     colWidths.forEach(w => {
-      const col = document.createElement("col");
-      col.style.width = w;
-      colgroup.appendChild(col);
+    const col = document.createElement("col");
+    col.style.width = w;
+    colgroup.appendChild(col);
     });
     table.appendChild(colgroup);
 
