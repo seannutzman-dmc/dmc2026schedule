@@ -399,7 +399,18 @@ table.appendChild(colgroup);
       r.forEach((cell, idx) => {
         const td = document.createElement("td");
         td.textContent = cell || "";
-        if (idx === 1 || idx === 2) td.classList.add("wrap"); // middle columns wrap
+
+         // idx 0 = Time, idx 4 = Rating, idx 5 = OPA
+        if (idx === 0 || idx === 4 || idx === 5) {
+        td.style.textAlign = "center";
+        td.style.verticalAlign = "middle";
+          } else {
+         td.style.textAlign = "left";
+          td.style.verticalAlign = "middle";
+        }
+
+        // Also align the headers to match (do this in the header loop above it)
+        if (idx === 1 || idx === 2) td.classList.add("wrap");
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
