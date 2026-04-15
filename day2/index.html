@@ -14,19 +14,34 @@
 
   <style>
     :root{
-      --bg: #0d1f1a;
-      --panel: rgba(255,255,255,.06);
-      --panel-strong: rgba(255,255,255,.10);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.72);
-      --accent: #4dd9ac;
-      --line: rgba(255,255,255,.12);
+     --bg: #f7f3e9;            /* warm parchment */
+    --panel: rgba(0,0,0,.04);
+    --panel-strong: rgba(0,0,0,.08);
+    --text: #1f2933;          /* deep charcoal */
+    --muted: #5f6b73;
+    --accent: #4dd9ac;
+    --line: rgba(0,0,0,.10);
 
-      /* Day 2 room colors — teal / coral / violet palette */
-      --room1: #4DD9AC;   /* teal */
-      --room2: #FF6B6B;   /* coral red */
-      --room3: #A78BFA;   /* soft violet */
-      --room4: #38BDF8;   /* sky blue (spare) */
+    /* Room colors (slightly deeper for light background) */
+    --room1: #2fbf9f;   /* teal */
+    --room2: #e85d5d;   /* coral */
+    --room3: #8b6cf6;   /* violet */
+    --room4: #3ba3e6;
+
+  --header-h: 160px;
+  --radius: 18px;
+
+  --title-size: clamp(38px, 3.0vw, 64px);
+  --subhead-size: clamp(22px, 1.6vw, 34px);
+  --section-title: clamp(28px, 2.1vw, 44px);
+  --cell-size: clamp(18px, 1.2vw, 28px);
+
+  --pad: clamp(16px, 1.2vw, 28px);
+  --row-pad-y: clamp(10px, 0.9vw, 18px);
+  --row-pad-x: clamp(10px, 1.0vw, 18px);
+
+  --px-per-sec: 40;
+}
 
       --header-h: 160px;
       --radius: 18px;
@@ -48,9 +63,10 @@
     body{
       margin:0;
       font-family: Montserrat, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(1200px 800px at 20% 0%, rgba(77,217,172,.10), transparent 55%),
-                  radial-gradient(900px 700px at 100% 10%, rgba(255,107,107,.10), transparent 55%),
-                  var(--bg);
+      background:
+        radial-gradient(1000px 600px at 10% 0%, rgba(77,217,172,.10), transparent 60%),
+        radial-gradient(800px 500px at 100% 10%, rgba(255,107,107,.10), transparent 60%),
+        var(--bg);
       color: var(--text);
       overflow: hidden;
     }
@@ -226,10 +242,10 @@
       font-size: calc(var(--cell-size) * 0.95);
       text-transform: uppercase;
       letter-spacing: .08em;
-      color: rgba(255,255,255,.70);
+       color: #1f2933;
+      background: rgba(0,0,0,.08);
       font-weight: 800;
       padding: 14px var(--row-pad-x);
-      background: var(--panel-strong);
       border-bottom: 1px solid var(--line);
       text-align: left;
       overflow: hidden;
@@ -249,7 +265,7 @@
     }
 
     tbody tr:nth-child(2n){
-      background: rgba(255,255,255,.03);
+      background: rgba(0,0,0,.03);
     }
 
     td.wrap{
@@ -259,12 +275,12 @@
 
     /* Now Performing */
     .now-performing {
-      background: linear-gradient(90deg, rgba(255,215,120,.30), rgba(255,255,255,.06)) !important;
-      box-shadow: inset 8px 0 0 #ffd166;
+      background: linear-gradient(90deg, rgba(255,200,80,.35), rgba(0,0,0,.03)) !important;
+      box-shadow: inset 8px 0 0 #f59e0b;
     }
 
     .now-performing td {
-      color: #ffffff;
+      color: #000;
       font-weight: 800;
     }
 
