@@ -1,1 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="refresh" content="1800"> <!-- hard refresh every 30 minutes as a safety net -->
+  <title>District Music Contest — Day 1</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,.06);
+      --panel-strong: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --accent: #d8b45a;
+      --line: rgba(255,255,255,.12);
+
+      --header-h: 160px;
+      --radius: 18px;
+
+      --title-size: clamp(38px, 3.0vw, 64px);
+      --subhead-size: clamp(22px, 1.6vw, 34px);
+
+      --section-title: clamp(28px, 2.1vw, 44px);
+      --cell-size: clamp(18px, 1.2vw, 28px);
+
+      --pad: clamp(16px, 1.2vw, 28px);
+      --row-pad-y: clamp(10px, 0.9vw, 18px);
+      --row-pad-x: clamp(10px, 1.0vw, 18px);
+
+      /* Scroll speed control: px per second (higher = faster) */
+      --px-per-sec: 40;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: Montserrat, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 0%, rgba(216,180,90,.10), transparent 55%),
+                  radial-gradient(900px 700px at 100% 10%, rgba(120,200,255,.10), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .app{
+      height: 100%;
+      display: grid;
+      grid-template-rows: var(--header-h) 1fr;
+    }
+
+    header{
+      padding: var(--pad);
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,.00));
+    }
+
+    .titles{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .title{
+      font-weight: 800;
+      letter-spacing: .5px;
+      font-size: var(--title-size);
+      line-height: 1.05;
+      color: rgba(255,255,255,.96);
+      text-shadow: 0 10px 30px rgba(0,0,0,.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .subtitle{
+      font-weight: 700;
+      font-size: var(--subhead-size);
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(216,180,90,.35);
+      background: rgba(216,180,90,.10);
+      color: rgba(255,255,255,.88);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .meta{
+      display:flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      text-align: right;
+      min-width: 280px;
+    }
+
+    .meta .updated{
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .meta .hint{
+      font-size: 14px;
+      color: rgba(255,255,255,.55);
+      font-weight: 600;
+    }
+
+    .viewport{
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      padding: var(--pad);
+    }
+
+    .panel{
+      height: 100%;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .scroll-track{
+      will-change: transform;
+    }
+
+    .is-scrolling .scroll-track{
+      animation-name: marqueeY;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      animation-duration: var(--scroll-duration, 60s);
+    }
+
+    @keyframes marqueeY{
+      from { transform: translateY(0); }
+      to   { transform: translateY(calc(-1 * var(--scroll-distance, 1000px))); }
+    }
+
+    .content{
+      padding: var(--pad);
+      display:flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .section{
+      border-radius: calc(var(--radius) - 6px);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      background: linear-gradient(to right, rgba(216,180,90,.15), transparent 55%);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-title{
+      font-size: var(--section-title);
+      font-weight: 800;
+      letter-spacing: .3px;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .section-note{
+      font-size: 14px;
+      font-weight: 700;
+      color: rgba(255,255,255,.60);
+      white-space: nowrap;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    thead th{
+      font-size: calc(var(--cell-size) * 0.95);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,.70);
+      font-weight: 800;
+      padding: 14px var(--row-pad-x);
+      background: var(--panel-strong);
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tbody td{
+      font-size: var(--cell-size);
+      font-weight: 700;
+      padding: var(--row-pad-y) var(--row-pad-x);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      vertical-align: top;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(2n){
+      background: rgba(255,255,255,.03);
+    }
+
+    td.wrap{
+      white-space: normal;
+      line-height: 1.15;
+    }
+
+    .error{
+      padding: 22px;
+      color: rgba(255,220,220,.92);
+      font-weight: 700;
+    }
+
+    .loading{
+      padding: 22px;
+      color: rgba(255,255,255,.78);
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .is-scrolling .scroll-track{ animation: none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="titles">
+        <div class="title">District Music Contest</div>
+        <div class="subtitle">
+          <span class="badge">Day 1</span>
+          <span>Thursday, April 23</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="updated" id="updated">Updating…</div>
+        <div class="hint">Continuous scroll • Auto-refresh data</div>
+      </div>
+    </header>
+
+    <main class="viewport">
+      <div class="panel" id="panel">
+        <div class="scroll-track" id="track">
+          <div class="content" id="content">
+            <div class="loading">Loading schedules…</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+  // ====== CONFIG ======
+  const SOURCES = [
+    {
+      name: "Auditorium Schedule",
+      url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTkDtGZuMaxz20NEAyvIiMZKBlPCLTQfCGX41BNpz3bvy2oEl_yw8KkHCpM5SLl6E2m3slUxuPEXd-S/pub?gid=2040085428&single=true&output=csv"
+    },
+    {
+      name: "Music Room Schedule",
+      url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTkDtGZuMaxz20NEAyvIiMZKBlPCLTQfCGX41BNpz3bvy2oEl_yw8KkHCpM5SLl6E2m3slUxuPEXd-S/pub?gid=1710505808&single=true&output=csv"
+    },
+    {
+      name: "Room 1 Schedule",
+      url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTkDtGZuMaxz20NEAyvIiMZKBlPCLTQfCGX41BNpz3bvy2oEl_yw8KkHCpM5SLl6E2m3slUxuPEXd-S/pub?gid=650883157&single=true&output=csv"
+    }
+  ];
+
+  // Columns B..G => indices 1..6 inclusive
+  const COL_START = 1;        // B
+  const COL_END_EXCLUSIVE = 7; // up to G
+
+  // Ignore Row 1 & Row 2, headers are on Row 3
+  const IGNORE_TOP_ROWS = 2;
+
+  // Data refresh (without full page reload)
+  const DATA_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
+
+  // ====== HELPERS ======
+  const $ = (id) => document.getElementById(id);
+
+  function nowStamp(){
+    const d = new Date();
+    return d.toLocaleString(undefined, {
+      weekday: "short", month: "short", day: "numeric",
+      hour: "numeric", minute: "2-digit"
+    });
+  }
+
+  function cacheBusted(url){
+    const u = new URL(url);
+    u.searchParams.set("_ts", Date.now().toString());
+    return u.toString();
+  }
+
+  function isRowEmpty(cells){
+    return cells.every(v => (v ?? "").toString().trim() === "");
+  }
+
+  function sliceBG(row){
+    return row
+      .slice(COL_START, COL_END_EXCLUSIVE)
+      .map(v => (v ?? "").toString().trim());
+  }
+
+  function buildSection(name, rowsBG){
+    const section = document.createElement("section");
+    section.className = "section";
+
+    const header = document.createElement("div");
+    header.className = "section-header";
+
+    const h2 = document.createElement("h2");
+    h2.className = "section-title";
+    h2.textContent = name;
+
+    const note = document.createElement("div");
+    note.className = "section-note";
+    note.textContent = "Live from Google Sheets";
+
+    header.appendChild(h2);
+    header.appendChild(note);
+    section.appendChild(header);
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const tbody = document.createElement("tbody");
+
+    // Forced: first row is header row (Row 3 in the sheet)
+    let headerRow = rowsBG[0] || [];
+    let bodyRows = rowsBG.slice(1);
+
+    if (!headerRow.length) {
+      headerRow = ["Time", "Event", "Group", "Class", "Judge", "Notes"].slice(0, 6);
+      bodyRows = [];
+    }
+
+    const trh = document.createElement("tr");
+    headerRow.forEach((cell) => {
+      const th = document.createElement("th");
+      th.textContent = cell || "";
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+
+    bodyRows.forEach((r) => {
+      if (isRowEmpty(r)) return;
+      const tr = document.createElement("tr");
+      r.forEach((cell, idx) => {
+        const td = document.createElement("td");
+        td.textContent = cell || "";
+        if (idx === 1 || idx === 2) td.classList.add("wrap"); // middle columns wrap
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+    section.appendChild(table);
+
+    return section;
+  }
+
+  async function fetchCsvRows(url){
+    return new Promise((resolve, reject) => {
+      Papa.parse(cacheBusted(url), {
+        download: true,
+        skipEmptyLines: true,
+        complete: (res) => resolve(res.data || []),
+        error: (err) => reject(err)
+      });
+    });
+  }
+
+  function clearAndStopScrolling(){
+    $("panel").classList.remove("is-scrolling");
+    $("track").style.removeProperty("--scroll-distance");
+    $("track").style.removeProperty("--scroll-duration");
+  }
+
+  function startContinuousScroll(){
+    const panel = $("panel");
+    const track = $("track");
+    const content = $("content");
+
+    const existingClone = document.getElementById("content-clone");
+    if (existingClone) existingClone.remove();
+
+    const panelHeight = panel.clientHeight;
+    const contentHeight = content.scrollHeight;
+
+    if (contentHeight <= panelHeight - 10) {
+      clearAndStopScrolling();
+      return;
+    }
+
+    const clone = content.cloneNode(true);
+    clone.id = "content-clone";
+    track.appendChild(clone);
+
+    const distance = contentHeight;
+    const pxPerSec = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--px-per-sec")) || 40;
+    const durationSec = Math.max(20, distance / pxPerSec);
+
+    track.style.setProperty("--scroll-distance", `${distance}px`);
+    track.style.setProperty("--scroll-duration", `${durationSec}s`);
+
+    panel.classList.add("is-scrolling");
+  }
+
+  async function loadAll(){
+    const content = $("content");
+    clearAndStopScrolling();
+    content.innerHTML = "";
+
+    try{
+      const results = await Promise.all(SOURCES.map(async (src) => {
+        const raw = await fetchCsvRows(src.url);
+
+        const cleaned = raw
+          .map(sliceBG)
+          .map(r => r.map(c => c.replace(/\s+/g, " ").trim()));
+
+        // Ignore Row 1 & Row 2; Row 3 becomes the header row
+        const rowsBG = cleaned
+          .slice(IGNORE_TOP_ROWS)
+          .filter(r => !isRowEmpty(r));
+
+        return { name: src.name, rowsBG };
+      }));
+
+      results.forEach(({name, rowsBG}) => {
+        content.appendChild(buildSection(name, rowsBG));
+      });
+
+      $("updated").textContent = `Updated: ${nowStamp()}`;
+
+      requestAnimationFrame(() => {
+        startContinuousScroll();
+        setTimeout(startContinuousScroll, 750); // remeasure after font load
+      });
+
+    } catch (e){
+      content.innerHTML = `<div class="error">Could not load schedule data. Confirm each tab is published as CSV and accessible.</div>`;
+      $("updated").textContent = `Updated: ${nowStamp()} (load error)`;
+    }
+  }
+
+  loadAll();
+  setInterval(loadAll, DATA_REFRESH_MS);
+  window.addEventListener("resize", () => setTimeout(startContinuousScroll, 200));
+</script>
+</body>
+</html>
