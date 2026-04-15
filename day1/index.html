@@ -323,10 +323,6 @@
     letter-spacing: 0.06em;
     text-align: center;
     }
-
-    .section-live .section-header {
-    box-shadow: inset 8px 0 0 #ffd166;
-    }
   </style>
 </head>
 
@@ -437,9 +433,9 @@
   function passesDayConstraint(){
     // TEST MODE:
     // Ignore actual calendar date and use ONLY the current time-of-day.
-    return true;
+    // return true;
 
-    /*
+    
     // LIVE MODE:
     // Uncomment this block AFTER testing if you want this page
     // to highlight only on the actual event date.
@@ -449,7 +445,6 @@
     const targetDay = 23;  // Thursday page
 
     return (now.getMonth() + 1 === targetMonth) && (now.getDate() === targetDay);
-    */
   }
 
   function highlightNowPerforming(){
