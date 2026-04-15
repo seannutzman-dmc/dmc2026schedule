@@ -361,6 +361,16 @@
     section.appendChild(header);
 
     const table = document.createElement("table");
+
+    // Column width control
+    const colgroup = document.createElement("colgroup");
+    const colWidths = ["10%", "18%", "24%", "22%", "8%", "18%"];
+    colWidths.forEach(w => {
+    const col = document.createElement("col");
+    col.style.width = w;
+    colgroup.appendChild(col);
+    });
+table.appendChild(colgroup);
     const thead = document.createElement("thead");
     const tbody = document.createElement("tbody");
 
