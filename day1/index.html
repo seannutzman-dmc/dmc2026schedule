@@ -299,6 +299,34 @@
     @media (prefers-reduced-motion: reduce){
       .is-scrolling .scroll-track{ animation: none !important; }
     }
+  
+    .now-performing {
+      background: linear-gradient(90deg, rgba(255,215,120,.30), rgba(255,255,255,.06)) !important;
+      box-shadow: inset 8px 0 0 #ffd166;
+    }
+
+    .now-performing td {
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .now-performing td:first-child::before {
+      content: "PERFORMING NOW";
+      display: inline-block;
+      margin-right: 10px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #ffd166;
+      color: #1a1a1a;
+      font-size: 0.72em;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      vertical-align: middle;
+    }
+
+    .section-live .section-header {
+    box-shadow: inset 8px 0 0 #ffd166;
+    }
   </style>
 </head>
 
@@ -381,6 +409,97 @@
       .slice(COL_START, COL_END_EXCLUSIVE)
       .map(v => (v ?? "").toString().trim());
   }
+  function parseTimeToMinutes(value){
+  if (!value) return null;
+
+  const text = value.toString().trim();
+
+  // Finds first time like:
+  // 8:00
+  // 8:00 AM
+  // 1:35pm
+  const match = text.match(/(\d{1,2}):(\d{2})\s*([AaPp][Mm])?/);
+
+  if (!match) return null;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = match[3] ? match[3].toUpperCase() : null;
+
+  if (meridiem) {
+    if (meridiem === "PM" && hours !== 12) hours += 12;
+    if (meridiem === "AM" && hours === 12) hours = 0;
+  }
+
+  return hours * 60 + minutes;
+  }
+
+  function passesDayConstraint(){
+    // TEST MODE:
+    // Ignore actual calendar date and use ONLY the current time-of-day.
+    return true;
+
+    /*
+    // LIVE MODE:
+    // Uncomment this block AFTER testing if you want this page
+    // to highlight only on the actual event date.
+
+    const now = new Date();
+    const targetMonth = 4; // April
+    const targetDay = 23;  // Thursday page
+
+    return (now.getMonth() + 1 === targetMonth) && (now.getDate() === targetDay);
+    */
+  }
+
+  function highlightNowPerforming(){
+    const sections = document.querySelectorAll(".section");
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    sections.forEach(section => {
+      section.classList.remove("section-live");
+
+    const rows = Array.from(section.querySelectorAll("tbody tr"));
+    rows.forEach(r => r.classList.remove("now-performing"));
+
+    if (!passesDayConstraint()) return;
+    if (!rows.length) return;
+
+    const rowTimes = rows.map(r => parseTimeToMinutes(r.dataset.time));
+
+    let liveIndex = -1;
+
+    for (let i = 0; i < rows.length; i++) {
+      const currentTime = rowTimes[i];
+      const nextTime = rowTimes[i + 1];
+
+      if (currentTime == null) continue;
+
+      // If this is the last timed row, keep it highlighted once its time has arrived.
+      if (i === rows.length - 1) {
+        if (nowMinutes >= currentTime) {
+          liveIndex = i;
+        }
+      } else if (nextTime != null) {
+        if (nowMinutes >= currentTime && nowMinutes < nextTime) {
+          liveIndex = i;
+          break;
+        }
+      } else {
+        // If next row has no valid time, still allow current row to go live after its start time
+        if (nowMinutes >= currentTime) {
+          liveIndex = i;
+        }
+      }
+    }
+
+    if (liveIndex >= 0) {
+      rows[liveIndex].classList.add("now-performing");
+      section.classList.add("section-live");
+    }
+  });
+}
 
   function buildSection(name, rowsBG){
     const section = document.createElement("section");
@@ -433,27 +552,33 @@ table.appendChild(colgroup);
     thead.appendChild(trh);
 
     bodyRows.forEach((r) => {
-      if (isRowEmpty(r)) return;
-      const tr = document.createElement("tr");
-      r.forEach((cell, idx) => {
-        const td = document.createElement("td");
-        td.textContent = cell || "";
+    if (isRowEmpty(r)) return;
+    const tr = document.createElement("tr");
 
-         // idx 0 = Time, idx 4 = Rating, idx 5 = OPA
-        if (idx === 0 || idx === 4 || idx === 5) {
+    // Store TIME column for "Now Performing" logic
+    tr.dataset.time = (r[0] || "").trim();
+
+    r.forEach((cell, idx) => {
+      const td = document.createElement("td");
+      td.textContent = cell || "";
+
+      // idx 0 = Time, idx 4 = Rating, idx 5 = OPA
+      if (idx === 0 || idx === 4 || idx === 5) {
         td.style.textAlign = "center";
         td.style.verticalAlign = "middle";
-          } else {
-         td.style.textAlign = "left";
-          td.style.verticalAlign = "middle";
-        }
+      } else {
+        td.style.textAlign = "left";
+        td.style.verticalAlign = "middle";
+      }
 
-        // Also align the headers to match (do this in the header loop above it)
-        if (idx === 1 || idx === 2) td.classList.add("wrap");
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
+      // Middle columns wrap (School and Student/s)
+      if (idx === 1 || idx === 2) td.classList.add("wrap");
+
+      tr.appendChild(td);
     });
+
+    tbody.appendChild(tr);
+  });
 
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -537,8 +662,13 @@ table.appendChild(colgroup);
       $("updated").textContent = `Updated: ${nowStamp()}`;
 
       requestAnimationFrame(() => {
+        highlightNowPerforming();
         startContinuousScroll();
-        setTimeout(startContinuousScroll, 750); // remeasure after font load
+
+        setTimeout(() => {
+          highlightNowPerforming();
+          startContinuousScroll();
+        }, 750); // remeasure after font load
       });
 
     } catch (e){
@@ -549,7 +679,16 @@ table.appendChild(colgroup);
 
   loadAll();
   setInterval(loadAll, DATA_REFRESH_MS);
-  window.addEventListener("resize", () => setTimeout(startContinuousScroll, 200));
+
+  // Re-check "Now Performing" every 30 seconds
+  setInterval(highlightNowPerforming, 30000);
+
+  window.addEventListener("resize", () => {
+    setTimeout(() => {
+      highlightNowPerforming();
+      startContinuousScroll();
+    }, 200);
+  });
 </script>
 </body>
 </html>
