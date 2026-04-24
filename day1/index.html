@@ -228,6 +228,14 @@
     background: linear-gradient(to right, rgba(255,183,77,.25), transparent 75%);
     }
 
+    /* Awards/Honors section styling (keeps it gold even though it's the 4th section) */
+    .section.awards-section{
+      border-left-color: var(--accent);
+    }
+    .section.awards-section .section-header{
+      background: linear-gradient(to right, rgba(216,180,90,.25), transparent 75%);
+    }
+
     .section-title{
       font-size: var(--section-title);
       font-weight: 800;
@@ -369,6 +377,13 @@
     }
   ];
 
+  // Awards/Honors tab (A1:F6 displayed)
+  const AWARDS_SOURCE = {
+    name: "Awards / Honors",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTkDtGZuMaxz20NEAyvIiMZKBlPCLTQfCGX41BNpz3bvy2oEl_yw8KkHCpM5SLl6E2m3slUxuPEXd-S/pub?gid=1349787282&single=true&output=csv"
+  };
+  const AWARDS_TOTAL_ROWS = 6; // A1:F6
+
   // Columns B..G => indices 1..6 inclusive
   const COL_START = 1;        // B
   const COL_END_EXCLUSIVE = 7; // up to G
@@ -405,6 +420,14 @@
       .slice(COL_START, COL_END_EXCLUSIVE)
       .map(v => (v ?? "").toString().trim());
   }
+
+  function sliceAF(row){
+    // Columns A..F => indices 0..5
+    return row
+      .slice(0, 6)
+      .map(v => (v ?? "").toString().trim());
+  }
+
   function parseTimeToMinutes(value){
   if (!value) return null;
 
@@ -452,238 +475,4 @@
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-    sections.forEach(section => {
-      section.classList.remove("section-live");
-
-    const rows = Array.from(section.querySelectorAll("tbody tr"));
-    rows.forEach(r => r.classList.remove("now-performing"));
-
-    if (!passesDayConstraint()) return;
-    if (!rows.length) return;
-
-    const rowTimes = rows.map(r => parseTimeToMinutes(r.dataset.time));
-
-    let liveIndex = -1;
-
-    for (let i = 0; i < rows.length; i++) {
-      const currentTime = rowTimes[i];
-      const nextTime = rowTimes[i + 1];
-
-      if (currentTime == null) continue;
-
-      // If this is the last timed row, keep it highlighted once its time has arrived.
-      if (i === rows.length - 1) {
-        if (nowMinutes >= currentTime) {
-          liveIndex = i;
-        }
-      } else if (nextTime != null) {
-        if (nowMinutes >= currentTime && nowMinutes < nextTime) {
-          liveIndex = i;
-          break;
-        }
-      } else {
-        // If next row has no valid time, still allow current row to go live after its start time
-        if (nowMinutes >= currentTime) {
-          liveIndex = i;
-        }
-      }
-    }
-
-    if (liveIndex >= 0) {
-      rows[liveIndex].classList.add("now-performing");
-      section.classList.add("section-live");
-    }
-  });
-}
-
-  function buildSection(name, rowsBG){
-    const section = document.createElement("section");
-    section.className = "section";
-
-    const header = document.createElement("div");
-    header.className = "section-header";
-
-    const h2 = document.createElement("h2");
-    h2.className = "section-title";
-    h2.textContent = name;
-
-    const note = document.createElement("div");
-    note.className = "section-note";
-    note.textContent = "Live from Google Sheets";
-
-    header.appendChild(h2);
-    header.appendChild(note);
-    section.appendChild(header);
-
-    const table = document.createElement("table");
-
-    // Column width control
-    const colgroup = document.createElement("colgroup");
-    const colWidths = ["15%", "15%", "25%", "20%", "15%", "10%"];
-    colWidths.forEach(w => {
-    const col = document.createElement("col");
-    col.style.width = w;
-    colgroup.appendChild(col);
-    });
-table.appendChild(colgroup);
-    const thead = document.createElement("thead");
-    const tbody = document.createElement("tbody");
-
-    // Forced: first row is header row (Row 3 in the sheet)
-    let headerRow = rowsBG[0] || [];
-    let bodyRows = rowsBG.slice(1);
-
-    if (!headerRow.length) {
-      headerRow = ["Time", "Event", "Group", "Class", "Judge", "Notes"].slice(0, 6);
-      bodyRows = [];
-    }
-
-    const trh = document.createElement("tr");
-    headerRow.forEach((cell) => {
-      const th = document.createElement("th");
-      th.textContent = cell || "";
-      trh.appendChild(th);
-    });
-    thead.appendChild(trh);
-
-    bodyRows.forEach((r) => {
-    if (isRowEmpty(r)) return;
-    const tr = document.createElement("tr");
-
-    // Store TIME column for "Now Performing" logic
-    tr.dataset.time = (r[0] || "").trim();
-
-    r.forEach((cell, idx) => {
-      const td = document.createElement("td");
-      td.textContent = cell || "";
-
-      // idx 0 = Time, idx 4 = Rating, idx 5 = OPA
-      if (idx === 0 || idx === 4 || idx === 5) {
-        td.style.textAlign = "center";
-        td.style.verticalAlign = "middle";
-      } else {
-        td.style.textAlign = "left";
-        td.style.verticalAlign = "middle";
-      }
-
-      // Middle columns wrap (School and Student/s)
-      if (idx === 1 || idx === 2) td.classList.add("wrap");
-
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-    section.appendChild(table);
-
-    return section;
-  }
-
-  async function fetchCsvRows(url){
-    return new Promise((resolve, reject) => {
-      Papa.parse(cacheBusted(url), {
-        download: true,
-        skipEmptyLines: true,
-        complete: (res) => resolve(res.data || []),
-        error: (err) => reject(err)
-      });
-    });
-  }
-
-  function clearAndStopScrolling(){
-    $("panel").classList.remove("is-scrolling");
-    $("track").style.removeProperty("--scroll-distance");
-    $("track").style.removeProperty("--scroll-duration");
-  }
-
-  function startContinuousScroll(){
-    const panel = $("panel");
-    const track = $("track");
-    const content = $("content");
-
-    const existingClone = document.getElementById("content-clone");
-    if (existingClone) existingClone.remove();
-
-    const panelHeight = panel.clientHeight;
-    const contentHeight = content.scrollHeight;
-
-    if (contentHeight <= panelHeight - 10) {
-      clearAndStopScrolling();
-      return;
-    }
-
-    const clone = content.cloneNode(true);
-    clone.id = "content-clone";
-    track.appendChild(clone);
-
-    const distance = contentHeight;
-    const pxPerSec = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--px-per-sec")) || 40;
-    const durationSec = Math.max(20, distance / pxPerSec);
-
-    track.style.setProperty("--scroll-distance", `${distance}px`);
-    track.style.setProperty("--scroll-duration", `${durationSec}s`);
-
-    panel.classList.add("is-scrolling");
-  }
-
-  async function loadAll(){
-    const content = $("content");
-    clearAndStopScrolling();
-    content.innerHTML = "";
-
-    try{
-      const results = await Promise.all(SOURCES.map(async (src) => {
-        const raw = await fetchCsvRows(src.url);
-
-        const cleaned = raw
-          .map(sliceBG)
-          .map(r => r.map(c => c.replace(/\s+/g, " ").trim()));
-
-        // Ignore Row 1 & Row 2; Row 3 becomes the header row
-        const rowsBG = cleaned
-          .slice(IGNORE_TOP_ROWS)
-          .filter(r => !isRowEmpty(r));
-
-        return { name: src.name, rowsBG };
-      }));
-
-      results.forEach(({name, rowsBG}) => {
-        content.appendChild(buildSection(name, rowsBG));
-      });
-
-      $("updated").textContent = `Updated: ${nowStamp()}`;
-
-      requestAnimationFrame(() => {
-        highlightNowPerforming();
-        startContinuousScroll();
-
-        setTimeout(() => {
-          highlightNowPerforming();
-          startContinuousScroll();
-        }, 750); // remeasure after font load
-      });
-
-    } catch (e){
-      content.innerHTML = `<div class="error">Could not load schedule data. Confirm each tab is published as CSV and accessible.</div>`;
-      $("updated").textContent = `Updated: ${nowStamp()} (load error)`;
-    }
-  }
-
-  loadAll();
-  setInterval(loadAll, DATA_REFRESH_MS);
-
-  // Re-check "Now Performing" every 30 seconds
-  setInterval(highlightNowPerforming, 30000);
-
-  window.addEventListener("resize", () => {
-    setTimeout(() => {
-      highlightNowPerforming();
-      startContinuousScroll();
-    }, 200);
-  });
-</script>
-</body>
-</html>
+    sections.forEach(section
